@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es6",                                 
+    "module": "es6", 
+    "baseUrl": "src",
+    "outDir": "build",
+    "lib": ["ESNext"],
+    "composite": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "noEmitOnError":false,
+    "moduleResolution": "node",
+    "paths": {
+      "Laya": [
+        "./libs/LayaAir.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "libs",
+  ]
+}

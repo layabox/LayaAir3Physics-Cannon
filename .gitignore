@@ -1,0 +1,8 @@
+build
+libs/box2d.d.ts
+libs/glsl.d.ts
+libs/LayaAir.d.ts
+libs/spine.d.ts
+node_modules
+scripts/enginePath.txt
+out
