@@ -12,7 +12,8 @@ import { CannonCollider } from "./Collider/CannonCollider";
 import { CannonColliderShape } from "./Shape/CannonColliderShape";
 import { CannonSpringJoint } from "./Joint/CannonSpringJoint";
 import { CannonMeshCollderShape } from "./Shape/CannonMeshCollderShape";
-import { EPhysicsCapable, ICharacterController, ICustomJoint, IFixedJoint, IHingeJoint, IPhysicsCreateUtil, Laya3D, PhysicsSettings } from "../libs/LayaAir";
+import { EPhysicsCapable, ICharacterController, ICustomJoint, ID6Joint, IFixedJoint, IHingeJoint, IPhysicsCreateUtil, IPhysicsManager, Laya3D, Mesh, PhysicsSettings } from "../libs/LayaAir";
+import { ConnonHeightFieldShape } from "./Shape/ConnonHeightFieldShape";
 
 
 export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
@@ -24,7 +25,7 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
 
     //初始化物理引擎
     initialize(): Promise<void> {
-        CannonPhysicsCreateUtil._cannon= CANNON;
+        CannonPhysicsCreateUtil._cannon = CANNON;
         CannonCollider.__init__();
         CannonRigidBodyCollider.__init__();
         CannonColliderShape.__init__();
@@ -37,9 +38,9 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
     /**
      * 初始化物理引擎具备的能力
      */
-    initPhysicsCapable(): void{
+    initPhysicsCapable(): void {
         this._physicsEngineCapableMap = new Map();
-		this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_Gravity, true);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_Gravity, true);
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_StaticCollider, true);
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_DynamicCollider, true);
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_CharacterCollider, false);
@@ -50,12 +51,19 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_ConeColliderShape, true);
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_MeshColliderShape, true);
         this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_CompoundColliderShape, false);
+
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_Joint, true);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_D6Joint, false);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_FixedJoint, false);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_SpringJoint, true);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_HingeJoint, false);
+        this._physicsEngineCapableMap.set(EPhysicsCapable.Physics_CreateCorveMesh, false);
     }
 
     /**
      * 根据属性id判断是否具备该中能力
      */
-    getPhysicsCapable(value: EPhysicsCapable): boolean{
+    getPhysicsCapable(value: EPhysicsCapable): boolean {
         return this._physicsEngineCapableMap.get(value);
     }
 
@@ -71,15 +79,15 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
      *  创建动态碰撞体实例
      *  @param manager 
      */
-    createDynamicCollider(manager:CannonPysiceManager): CannonRigidBodyCollider {
+    createDynamicCollider(manager: CannonPysiceManager): CannonRigidBodyCollider {
         return new CannonRigidBodyCollider(manager);
     }
 
-     /**
-     *  创建静态碰撞体对实例
-     *  @param manager 
-     */
-    createStaticCollider(manager:CannonPysiceManager): CannonStaticCollider {
+    /**
+    *  创建静态碰撞体对实例
+    *  @param manager 
+    */
+    createStaticCollider(manager: CannonPysiceManager): CannonStaticCollider {
         return new CannonStaticCollider(manager);
     }
 
@@ -87,45 +95,45 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
      * 创建角色碰撞体实例  cannon暂未实现
      * @param manager 
      */
-    createCharacterController(manager:CannonPysiceManager): ICharacterController {
+    createCharacterController(manager: CannonPysiceManager): ICharacterController {
         throw new Error("Method not suport.");
     }
 
-     /**
-     * 创建固定关节点实例 cannon暂未实现
-     * @param manager 
-     */
-    createFixedJoint(manager:CannonPysiceManager): IFixedJoint {
+    /**
+    * 创建固定关节点实例 cannon暂未实现
+    * @param manager 
+    */
+    createFixedJoint(manager: CannonPysiceManager): IFixedJoint {
         throw new Error("Method not implemented.");
     }
 
-     /**
-     * 创建铰链关节点实例 cannon暂未实现
-     * @param manager 
-     */
-    createHingeJoint(manager:CannonPysiceManager): IHingeJoint {
+    /**
+    * 创建铰链关节点实例 cannon暂未实现
+    * @param manager 
+    */
+    createHingeJoint(manager: CannonPysiceManager): IHingeJoint {
         throw new Error("Method not implemented.");
     }
 
-     /**
-     * 创建弹簧关节点实例 cannon暂未实现
-     * @param manager 
-     */
-    createSpringJoint(manager:CannonPysiceManager): CannonSpringJoint {
+    /**
+    * 创建弹簧关节点实例 cannon暂未实现
+    * @param manager 
+    */
+    createSpringJoint(manager: CannonPysiceManager): CannonSpringJoint {
         return new CannonSpringJoint(manager)
     }
 
-     /**
-     * 创建自定义关节点实例 cannon暂未实现
-     * @param manager 
-     */
-    createCustomJoint(manager:CannonPysiceManager): ICustomJoint {
+    /**
+    * 创建自定义关节点实例 cannon暂未实现
+    * @param manager 
+    */
+    createCustomJoint(manager: CannonPysiceManager): ICustomJoint {
         throw new Error("Method not implemented.");
     }
 
-     /**
-     * 创建立方体实例
-     */
+    /**
+    * 创建立方体实例
+    */
     createBoxColliderShape(): CannonBoxColliderShape {
         return new CannonBoxColliderShape();
     }
@@ -165,11 +173,21 @@ export class CannonPhysicsCreateUtil implements IPhysicsCreateUtil {
         return new CannonCylinderColliderShape();
     }
 
-     /**
-     * 创建圆锥体实例
-     */
+    /**
+    * 创建圆锥体实例
+    */
     createConeColliderShape(): CannonConeColliderShape {
         return new CannonConeColliderShape();
+    }
+
+    createD6Joint(manager: IPhysicsManager): ID6Joint {
+        throw new Error("Method not implemented.");
+    }
+    createHeightFieldShape?(): ConnonHeightFieldShape {
+        return new ConnonHeightFieldShape();
+    }
+    createCorveMesh?(mesh: Mesh): Mesh {
+        throw new Error("Method not implemented.");
     }
 }
 

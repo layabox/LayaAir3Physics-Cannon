@@ -8,23 +8,48 @@ export class ConnonJoint implements IJoint {
     owner: Sprite3D;
     /**@internal */
     _id: number;
-    _manager:CannonPysiceManager;
-    _constraint:CANNON.Constraint;
+    _manager: CannonPysiceManager;
+    _constraint: CANNON.Constraint;
     protected _ownerCollider: CannonCollider;
-    protected _otherCollider:CannonCollider;
-    constructor(manager:CannonPysiceManager){
+    protected _otherCollider: CannonCollider;
+    constructor(manager: CannonPysiceManager) {
         this._manager = manager;
+    }
+    setLocalPos(pos: Vector3): void {
+        throw new Error("Method not implemented.");
+    }
+    setConnectLocalPos(pos: Vector3): void {
+        throw new Error("Method not implemented.");
+    }
+    getlinearForce(): Vector3 {
+        throw new Error("Method not implemented.");
+    }
+    getAngularForce(): Vector3 {
+        throw new Error("Method not implemented.");
+    }
+    isValid(): boolean {
+        throw new Error("Method not implemented.");
+    }
+    isEnable(value: boolean): void {
+        throw new Error("Method not implemented.");
+    }
+    isCollision(value: boolean): void {
+        throw new Error("Method not implemented.");
     }
     setOwner(owner: Sprite3D) {
         this.owner = owner;
     }
 
-    setConnectedCollider(owner: CannonCollider, other: CannonCollider): void {
+    setCollider(owner: CannonCollider): void {
         this._manager && this._manager.removeJoint(this);
         this._ownerCollider = owner;
+    }
+    setConnectedCollider(other: CannonCollider): void {
+        this._manager && this._manager.removeJoint(this);
         this._otherCollider = other;
     }
-    setConnectedAnchor(value: Vector3,otherValue: Vector3): void {
+
+    setConnectedAnchor(value: Vector3, otherValue: Vector3): void {
         throw new Error("Method not implemented.");
     }
     setConnectedMassScale(value: number): void {
@@ -46,6 +71,6 @@ export class ConnonJoint implements IJoint {
         throw new Error("Method not implemented.");
     }
 
-   
+
 
 }

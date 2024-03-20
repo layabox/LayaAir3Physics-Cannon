@@ -46,7 +46,9 @@
     "rollup-plugin-sourcemaps": "^0.6.3",
     "socket.io": "^4.1.3",
     "typedoc": "^0.15.0",
-    "typescript": "^4.6.4"
-},
+    "typescript": "^4.6.4",
+    "glob": "^10.3.10",
+    "cross-spawn": "^7.0.3"
+  },
   "homepage": "https://github.com/layabox/Laya3.0PhysicsCannon#readme"
 }

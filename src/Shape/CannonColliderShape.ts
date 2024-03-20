@@ -1,5 +1,5 @@
+import { CannonCollider } from "Collider/CannonCollider";
 import { IColliderShape, Vector3, Quaternion, Physics3DColliderShape, Matrix4x4 } from "../../libs/LayaAir";
-import { CannonCollider } from "../Collider/CannonCollider";
 
 /**
  * <code>ColliderShape</code> 类用于创建形状碰撞器的父类，该类为抽象类。
@@ -46,23 +46,23 @@ export class CannonColliderShape implements IColliderShape {
 	}
 
 
-	static getLocalQuatation(upAxis: number,rotation:Quaternion): void {
-        switch (upAxis) {
-            case Physics3DColliderShape.SHAPEORIENTATION_UPX:
-                rotation.identity();
-                break;
-            case Physics3DColliderShape.SHAPEORIENTATION_UPY:
-                Quaternion.createFromAxisAngle(Vector3.UnitX, Math.PI / 2, rotation);
-                
-                break;
-            case Physics3DColliderShape.SHAPEORIENTATION_UPZ:
-                Quaternion.createFromAxisAngle(Vector3.UnitZ, -Math.PI / 2, rotation);
-                break;
-            default:
-                throw "CapsuleColliderShape:unknown orientation.";
-        }
-       
-    }
+	static getLocalQuatation(upAxis: number, rotation: Quaternion): void {
+		switch (upAxis) {
+			case Physics3DColliderShape.SHAPEORIENTATION_UPX:
+				rotation.identity();
+				break;
+			case Physics3DColliderShape.SHAPEORIENTATION_UPY:
+				Quaternion.createFromAxisAngle(Vector3.UnitX, Math.PI / 2, rotation);
+
+				break;
+			case Physics3DColliderShape.SHAPEORIENTATION_UPZ:
+				Quaternion.createFromAxisAngle(Vector3.UnitZ, -Math.PI / 2, rotation);
+				break;
+			default:
+				throw "CapsuleColliderShape:unknown orientation.";
+		}
+
+	}
 
 	/**
 	 * @internal
@@ -91,7 +91,7 @@ export class CannonColliderShape implements IColliderShape {
 		outE[15] = 1;
 	}
 
-  
+
 	/**@internal */
 	_btShape: CANNON.Shape;
 	/**@internal */
@@ -108,7 +108,7 @@ export class CannonColliderShape implements IColliderShape {
 	/**@internal */
 	_attatchedCollisionObject: CannonCollider = null;
 
-      
+
 	/**@internal */
 	_scale: Vector3 = new Vector3(1, 1, 1);
 
@@ -126,16 +126,16 @@ export class CannonColliderShape implements IColliderShape {
 	}
 
 
-    setOffset(position: Vector3): void{
-        position.cloneTo(this._localOffset); 
-    }
+	setOffset(position: Vector3): void {
+		position.cloneTo(this._localOffset);
+	}
 
-    
+
 	setWorldScale(value: Vector3): void {
-		if(Vector3.equals(this._scale,value)){
+		if (Vector3.equals(this._scale, value)) {
 			return;
 		}
-        value.cloneTo(this._scale);
+		value.cloneTo(this._scale);
 		this._updateShapeContent();
 	}
 
@@ -146,11 +146,11 @@ export class CannonColliderShape implements IColliderShape {
 		this.createColliderShape();
 	}
 
-	protected createColliderShape(){
+	protected createColliderShape() {
 
 	}
 
-	protected _updateShapeContent(){
+	protected _updateShapeContent() {
 	}
 
 	/**
@@ -169,16 +169,16 @@ export class CannonColliderShape implements IColliderShape {
 	/**
 	 * 更新物理世界模型
 	 */
-	addToCannonBody(){
+	addToCannonBody() {
 		let btColliderObject = null;
-        if(this._attatchedCollisionObject&&this._attatchedCollisionObject._btColliderObject){
-            btColliderObject = this._attatchedCollisionObject._btColliderObject;
-        }
-		if(this._btShape&&btColliderObject){
+		if (this._attatchedCollisionObject && this._attatchedCollisionObject._btColliderObject) {
+			btColliderObject = this._attatchedCollisionObject._btColliderObject;
+		}
+		if (this._btShape && btColliderObject) {
 			var localOffset = this._localOffset;
 			var scale = this._scale;
-			var vecs:CANNON.Vec3 =new CANNON.Vec3(localOffset.x*scale.x,localOffset.y*scale.y,localOffset.z*scale.z);
-			btColliderObject.addShape(this._btShape,vecs);
+			var vecs: CANNON.Vec3 = new CANNON.Vec3(localOffset.x * scale.x, localOffset.y * scale.y, localOffset.z * scale.z);
+			btColliderObject.addShape(this._btShape, vecs);
 		}
 	}
 	/**
