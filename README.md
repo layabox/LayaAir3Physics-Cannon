@@ -10,7 +10,7 @@ Starting from LayaAir 3.1, developers are able to independently integrate third-
 1. In the root directory of the engine, execute the following command in the command line to install node modules:
 
 ```sh
-cnpm i
+npm i
 ```
 
 2. Obtaining and updating the LayaAir engine is too basic for this document, so it will not be covered here.
@@ -28,7 +28,7 @@ D:\Github\LayaAir
 4. In the root directory of the engine, execute the following command in the command line to compile the engine into the project directory:
 
 ```shell
-cnpm run update-engine
+npm run update-engine
 ```
 
 
@@ -38,7 +38,7 @@ cnpm run update-engine
 In the root directory of the engine, execute the following command in the command line to compile the physics engine into a standalone JavaScript library file:
 
 ```
-cnpm run build
+npm run build
 ```
 
 The compiled JavaScript library file `laya.cannon.js` is located in the `out` directory.
