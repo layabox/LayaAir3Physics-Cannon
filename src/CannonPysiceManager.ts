@@ -226,8 +226,8 @@ export class CannonPysiceManager implements IPhysicsManager {
 		let loopCount = this._updateCount;
 		for (var i: number = 0, n: number = this._currentFrameCollisions.length; i < n; i++) {
 			var curFrameCol: Collision = this._currentFrameCollisions[i];
-			var colliderA: CannonCollider = curFrameCol._colliderA as CannonCollider;
-			var colliderB: CannonCollider = curFrameCol._colliderB as CannonCollider;
+			var colliderA = curFrameCol._colliderA.component;
+			var colliderB = curFrameCol._colliderB.component;
 			if (colliderA._destroyed || colliderB._destroyed)//前一个循环可能会销毁后面循环的同一物理组件
 				continue;
 			let ownerA = colliderA.owner;
@@ -257,8 +257,8 @@ export class CannonPysiceManager implements IPhysicsManager {
 
 		for (i = 0, n = this._previousFrameCollisions.length; i < n; i++) {
 			var preFrameCol = this._previousFrameCollisions[i];
-			var preColliderA = preFrameCol._colliderA as CannonCollider;
-			var preColliderB = preFrameCol._colliderB as CannonCollider;
+			var preColliderA = preFrameCol._colliderA.component;
+			var preColliderB = preFrameCol._colliderB.component;
 			if (preColliderA._destroyed || preColliderB._destroyed)
 				continue;
 			let ownerA = preColliderA.owner;
@@ -316,8 +316,18 @@ export class CannonPysiceManager implements IPhysicsManager {
 		if (!collider._isSimulate) {
 			return;
 		}
+		collider.inPhysicUpdateListIndex != undefined && (collider.inPhysicUpdateListIndex = -1);
 		this._discreteDynamicsWorld.removeBody(collider._btColliderObject);
 		collider._isSimulate = false;
+	}
+
+	/**
+	 * 设置碰撞体是否活跃
+	 * @param collider 
+	 * @param bActive 
+	 */
+	setActiveCollider(collider, bActive): void {
+		collider._physicsManager = bActive ? this : null;
 	}
 
 	/**
@@ -369,6 +379,7 @@ export class CannonPysiceManager implements IPhysicsManager {
 		CannonCollider._addUpdateList = true;
 		this._updateCollisions();
 		this.dispatchCollideEvent();
+		this._updateCount++;
 	}
 
 	/**
