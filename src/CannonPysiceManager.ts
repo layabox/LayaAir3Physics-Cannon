@@ -316,6 +316,7 @@ export class CannonPysiceManager implements IPhysicsManager {
 		if (!collider._isSimulate) {
 			return;
 		}
+		collider.inPhysicUpdateListIndex != undefined && (collider.inPhysicUpdateListIndex = -1);
 		this._discreteDynamicsWorld.removeBody(collider._btColliderObject);
 		collider._isSimulate = false;
 	}
