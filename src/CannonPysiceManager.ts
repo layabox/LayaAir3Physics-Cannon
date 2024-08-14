@@ -1,5 +1,5 @@
 
-import { IPhysicsManager, Vector3, Event, Collision, PhysicsUpdateList, PhysicsSettings, ContactPoint, Ray, HitResult } from "../libs/LayaAir";
+import { IPhysicsManager, Vector3, Event, Collision, PhysicsUpdateList, PhysicsSettings, ContactPoint, Ray, HitResult, ICollider, IColliderShape, Quaternion } from "../libs/LayaAir";
 import { CannonCollisionTool } from "./CannonCollisionTool";
 import { CannonCollider } from "./Collider/CannonCollider";
 import { ConnonJoint } from "./Joint/ConnonJoint";
@@ -116,6 +116,24 @@ export class CannonPysiceManager implements IPhysicsManager {
 		this._discreteDynamicsWorld.defaultContactMaterial.contactEquationStiffness = 1e7;
 		this.setGravity(this._gravity);
 	}
+	setActiveCollider(collider: CannonCollider, value: boolean): void {
+		// throw new Error("Method not implemented.");
+		collider.active = value;
+        if (value) {
+            collider._physicsManager = this;
+        } else {
+            collider._physicsManager = null;
+        }
+	}
+	enableDebugDrawer?(value: boolean): void {
+		throw new Error("Method not implemented.");
+	}
+	shapeCast(shape: IColliderShape, fromPosition: Vector3, toPosition: Vector3, out: HitResult, fromRotation?: Quaternion, toRotation?: Quaternion, collisonGroup?: number, collisionMask?: number, allowedCcdPenetration?: number): boolean {
+		throw new Error("Method not implemented.");
+	}
+	shapeCastAll(shape: IColliderShape, fromPosition: Vector3, toPosition: Vector3, out: HitResult[], fromRotation?: Quaternion, toRotation?: Quaternion, collisonGroup?: number, collisionMask?: number, allowedCcdPenetration?: number): boolean {
+		throw new Error("Method not implemented.");
+	}
 
 	/**
 	* @internal
@@ -133,7 +151,7 @@ export class CannonPysiceManager implements IPhysicsManager {
 			var cannonBody: CANNON.Body = callBackBody[i];
 			var rigidbody: CannonCollider = CannonCollider._physicObjectsMap.get(cannonBody.layaID);
 			this._updatedRigidbodies++;
-			rigidbody._updateTransformComponent(rigidbody._btColliderObject);
+			rigidbody._updateTransformComponent(rigidbody._cannonColliderObject);
 		}
 		this._springConstraint.forEach((value) => {
 			value._spring.applyForce();
@@ -237,9 +255,9 @@ export class CannonPysiceManager implements IPhysicsManager {
 					ownerA.event(Event.TRIGGER_STAY, colliderB);
 					ownerB.event(Event.TRIGGER_STAY, colliderA);
 				} else {
-					curFrameCol.other = colliderB;
+					curFrameCol.other = colliderB.component;
 					ownerA.event(Event.COLLISION_STAY, curFrameCol);
-					curFrameCol.other = colliderA;
+					curFrameCol.other = colliderA.component;
 					ownerB.event(Event.COLLISION_STAY, curFrameCol);
 				}
 			} else {
@@ -247,9 +265,9 @@ export class CannonPysiceManager implements IPhysicsManager {
 					ownerA.event(Event.TRIGGER_ENTER, colliderB);
 					ownerB.event(Event.TRIGGER_ENTER, colliderA);
 				} else {
-					curFrameCol.other = colliderB;
+					curFrameCol.other = colliderB.component;
 					ownerA.event(Event.COLLISION_ENTER, curFrameCol);
-					curFrameCol.other = colliderA;
+					curFrameCol.other = colliderA.component;
 					ownerB.event(Event.COLLISION_ENTER, curFrameCol);
 				}
 			}
@@ -269,9 +287,9 @@ export class CannonPysiceManager implements IPhysicsManager {
 					ownerA.event(Event.TRIGGER_EXIT, preColliderB);
 					ownerB.event(Event.TRIGGER_EXIT, preColliderA);
 				} else {
-					preFrameCol.other = preColliderB;
+					preFrameCol.other = preColliderB.component;
 					ownerA.event(Event.COLLISION_EXIT, preFrameCol);
-					preFrameCol.other = preColliderA;
+					preFrameCol.other = preColliderA.component;
 					ownerB.event(Event.COLLISION_EXIT, preFrameCol);
 				}
 			}
@@ -302,7 +320,7 @@ export class CannonPysiceManager implements IPhysicsManager {
 			return;
 		}
 		collider._derivePhysicsTransformation(true);
-		this._discreteDynamicsWorld.addBody(collider._btColliderObject);
+		this._discreteDynamicsWorld.addBody(collider._cannonColliderObject);
 		collider._isSimulate = true;
 
 	}
@@ -316,7 +334,7 @@ export class CannonPysiceManager implements IPhysicsManager {
 		if (!collider._isSimulate) {
 			return;
 		}
-		this._discreteDynamicsWorld.removeBody(collider._btColliderObject);
+		this._discreteDynamicsWorld.removeBody(collider._cannonColliderObject);
 		collider._isSimulate = false;
 	}
 

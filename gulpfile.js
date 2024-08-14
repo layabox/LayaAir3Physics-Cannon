@@ -26,6 +26,7 @@ const packsDef = [
     }
 ];
 
+
 /*
     并非所有循环引用都会引起加载问题，如果两个模块只是使用对方的类型声明，没有使用继承/构造行为，是允许的。
     这里忽略这类情况。
@@ -52,7 +53,7 @@ const onwarn = warning => {
 }
 
 gulp.task('compile', () => {
-    rimrafSync(tscOutPath );
+    rimrafSync(tscOutPath);
 
     const proj = gulpts.createProject("tsconfig.json", {
         removeComments: true,
@@ -65,13 +66,13 @@ gulp.task('compile', () => {
             .pipe(sourcemaps.write('.', { sourceRoot: './', includeContent: false }))
             .pipe(gulp.dest(tscOutPath)),
 
-       
+
     );
 });
 
 gulp.task("buildJs", async () => {
     rimrafSync("./out");
-    
+
 
     const rootPath = process.cwd();
     const outPath = path.join(rootPath, tscOutPath);
@@ -190,7 +191,7 @@ gulp.task('concatCannonPhysics', () => {
 });
 
 gulp.task('copyLibs', (done) => {
-    fs.copyFile(path.join("./build/jslib", "laya.cannon.js.map"), path.join("./out", "laya.cannon.js.map"),done);
+    fs.copyFile(path.join("./build/jslib", "laya.cannon.js.map"), path.join("./out", "laya.cannon.js.map"), done);
 });
 gulp.task('build',
-    gulp.series('compile',  'buildJs','concatCannonPhysics','copyLibs'));
+    gulp.series('compile', 'buildJs', 'concatCannonPhysics', 'copyLibs'));

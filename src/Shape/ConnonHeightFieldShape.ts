@@ -36,7 +36,7 @@ export class ConnonHeightFieldShape extends CannonColliderShape implements IHeig
         let deltaHeight = this._maxHeight - this._minHeight;
         let datas = []
         for (var i = 0; i < this._numRows; i++) {
-            let data = datas[i] = [];
+            let data :any= datas[i] = [];
             let offIndex = i * this._numCols;
             for (var j = 0; j < this._numCols; j++) {
                 data[j] = (this._heightData[offIndex + j] - this._minHeight) / deltaHeight;

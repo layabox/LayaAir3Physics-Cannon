@@ -8,7 +8,7 @@ export class CannonStaticCollider extends CannonCollider implements IStaticColli
 	static _staticCapableMap: Map<any, any>;
     constructor(physicsManager: CannonPysiceManager) {
 		super(physicsManager);
-        this._btColliderObject.type = CANNON.Body.STATIC;
+        this._cannonColliderObject.type = CANNON.Body.STATIC;
 	}
 
 	static getStaticColliderCapable(value: EColliderCapable): boolean {
@@ -39,19 +39,19 @@ export class CannonStaticCollider extends CannonCollider implements IStaticColli
     
     setTrigger(value: boolean): void {
         this._isTrigger = value;
-        if (this._btColliderObject) {
-			this._btColliderObject.isTrigger = value;
+        if (this._cannonColliderObject) {
+			this._cannonColliderObject.isTrigger = value;
 			if (value) {
-				var flag = this._btColliderObject.type;
+				var flag = this._cannonColliderObject.type;
 				//TODO:可能要改
-				this._btColliderObject.collisionResponse = false;
+				this._cannonColliderObject.collisionResponse = false;
 				if((flag&CANNON.Body.STATIC)===0)
-				this._btColliderObject.type |= CANNON.Body.STATIC;
+				this._cannonColliderObject.type |= CANNON.Body.STATIC;
 			} else {
 				//TODO：可能要改
-				this._btColliderObject.collisionResponse = true;
+				this._cannonColliderObject.collisionResponse = true;
 				if((flag &CANNON.Body.STATIC) !== 0)
-				this._btColliderObject.type ^= CANNON.Body.STATIC;
+				this._cannonColliderObject.type ^= CANNON.Body.STATIC;
 			}
 		}
     }

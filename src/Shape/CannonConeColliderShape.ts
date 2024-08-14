@@ -24,7 +24,7 @@ export class CannonConeColliderShape extends CannonColliderShape implements ICon
         let scalex = Math.abs(this._scale.x);
         let scaley = Math.abs(this._scale.y);
         let scalez = Math.abs(this._scale.z);
-        let body:CANNON.Body = this._attatchedCollisionObject._btColliderObject;
+        let body:CANNON.Body = this._attatchedCollisionObject._cannonColliderObject;
         body.shapes.length = 0;
 		body.shapeOffsets.length = 0;
 		body.shapeOrientations.length = 0;
