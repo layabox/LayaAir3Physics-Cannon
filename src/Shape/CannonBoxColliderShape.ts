@@ -15,7 +15,7 @@ export class CannonBoxColliderShape extends CannonColliderShape implements IBoxC
         var btsize = new CANNON.Vec3(this._size.x / 2, this._size.y / 2, this._size.z / 2);
         this._btShape = new CANNON.Box(btsize);
     }
-    
+
 
     protected _updateShapeContent() {
         let box: CANNON.Box = this._btShape as CANNON.Box;

@@ -12,13 +12,13 @@ export class CannonSpringJoint extends ConnonJoint implements ISpringJoint {
 
     setCollider(owner: CannonCollider): void {
         super.setCollider(owner);
-        this._spring.bodyA = owner._btColliderObject;
+        this._spring.bodyA = owner._cannonColliderObject;
         this._manager.addJoint(this);
     }
 
     setConnectedCollider(other: CannonCollider): void {
         super.setConnectedCollider(other);
-        this._spring.bodyB = other._btColliderObject;
+        this._spring.bodyB = other._cannonColliderObject;
         this._manager.addJoint(this);
     }
 

@@ -1,18 +1,18 @@
 
-import { ICollider, Vector3, Quaternion, Matrix4x4, Sprite3D, Transform3D } from "../../libs/LayaAir";
+import { ICollider, Vector3, Quaternion, Matrix4x4, Sprite3D, Transform3D, PhysicsColliderComponent } from "../../libs/LayaAir";
 import { CannonPysiceManager } from "../CannonPysiceManager";
 import { CannonColliderShape } from "../Shape/CannonColliderShape";
 
 export enum CannonColliderType {
-    RigidbodyCollider,
-    CharactorCollider,
-    StaticCollider
+	RigidbodyCollider,
+	CharactorCollider,
+	StaticCollider
 }
 
 export class CannonCollider implements ICollider {
-    static _colliderID: number = 0;
-    static _addUpdateList: boolean = true;
-	  
+	static _colliderID: number = 0;
+	static _addUpdateList: boolean = true;
+
 
 	/** @internal */
 	protected static _tempVector30: Vector3 = new Vector3();
@@ -26,12 +26,14 @@ export class CannonCollider implements ICollider {
 	protected static _btVector30: CANNON.Vec3;
 	/** @internal */
 	protected static _btQuaternion0: CANNON.Quaternion;
-    
+
+	active: boolean;
+
 
 	/** @internal */
-	static _physicObjectsMap: Map<number,CannonCollider>;
+	static _physicObjectsMap: Map<number, CannonCollider>;
 
-    
+
 	/**
 	 * @internal
 	 */
@@ -51,125 +53,126 @@ export class CannonCollider implements ICollider {
 	}
 
 
-    _physicsManager: CannonPysiceManager;
-    	/** @internal */
+	_physicsManager: CannonPysiceManager;
+	/** @internal */
 	protected _transformFlag: number = 2147483647 /*int.MAX_VALUE*/;
-    	/** @internal */
+	/** @internal */
 	protected _collisionGroup: number;
 	/** @internal */
 	protected _canCollideWith: number;
 
-    /** @internal 触发器*/
-    _isTrigger: boolean;
+	/** @internal 触发器*/
+	_isTrigger: boolean;
 
-    _enableProcessCollisions: boolean;
-	
-    
-
-    _destroyed: boolean = false;
-
-    owner: Sprite3D;
-
-    _transform: Transform3D;
-    /** @internal */
-    _id: number;
-    _type:CannonColliderType;
-
-    _colliderShape: CannonColliderShape;
-
-    //update list index
-    inPhysicUpdateListIndex: number;
+	_enableProcessCollisions: boolean;
 
 
-    /** @internal */
-	_btColliderObject: CANNON.Body;//TODO:不用声明,TODO:删除相关判断
 
-    _isSimulate: boolean = false;//是否已经生效
+	_destroyed: boolean = false;
 
-    componentEnable: boolean
+	owner: Sprite3D;
+
+	_transform: Transform3D;
+	/** @internal */
+	_id: number;
+	_type: CannonColliderType;
+
+	_colliderShape: CannonColliderShape;
+
+	//update list index
+	inPhysicUpdateListIndex: number;
+
+
+	/** @internal */
+	_cannonColliderObject: CANNON.Body;//TODO:不用声明,TODO:删除相关判断
+
+	_isSimulate: boolean = false;//是否已经生效
+
+	componentEnable: boolean;
+	component: PhysicsColliderComponent;
 	/** @internal  弹力*/
 	private _restitution: number = 0.0;
 	/** @internal  摩擦力*/
 	private _friction: number = 0.5;
 
-	private _scale:Vector3;
+	private _scale: Vector3;
 
 
-    /**
-    * @internal
-    */
-    static __init__(): void {
-        CannonCollider._btVector30 =new CANNON.Vec3(0,0,0);
-		CannonCollider._btQuaternion0 = new CANNON.Quaternion(0,0,0,1);
-        CannonCollider._physicObjectsMap = new Map<number,CannonCollider>();
-    }
+	/**
+	* @internal
+	*/
+	static __init__(): void {
+		CannonCollider._btVector30 = new CANNON.Vec3(0, 0, 0);
+		CannonCollider._btQuaternion0 = new CANNON.Quaternion(0, 0, 0, 1);
+		CannonCollider._physicObjectsMap = new Map<number, CannonCollider>();
+	}
 
-    constructor(physicsManager: CannonPysiceManager) {
-        this._btColliderObject = new CANNON.Body();
-		this._btColliderObject.material = new CANNON.Material();
-        this._physicsManager = physicsManager;
-        this._id =this._btColliderObject.layaID= CannonCollider._colliderID++;
-        this._isTrigger = false;
-        this._enableProcessCollisions = false;
-		this._scale = new Vector3(1,1,1);
-        CannonCollider._physicObjectsMap.set(this._id,this);
-        this._type = this.getColliderType();
-        this._initCollider();
+	constructor(physicsManager: CannonPysiceManager) {
+		this._cannonColliderObject = new CANNON.Body();
+		this._cannonColliderObject.material = new CANNON.Material();
+		this._physicsManager = physicsManager;
+		this._id = this._cannonColliderObject.layaID = CannonCollider._colliderID++;
+		this._isTrigger = false;
+		this._enableProcessCollisions = false;
+		this._scale = new Vector3(1, 1, 1);
+		CannonCollider._physicObjectsMap.set(this._id, this);
+		this._type = this.getColliderType();
+		this._initCollider();
 		this.setCollisionGroup(CannonPysiceManager.COLLISIONFILTERGROUP_DEFAULTFILTER);
 		this.setCanCollideWith(CannonPysiceManager.COLLISIONFILTERGROUP_ALLFILTER);
-    }
+	}
 
-	getCapable(value: number):boolean{
+	getCapable(value: number): boolean {
 		return true;
 	}
-    setOwner(node: Sprite3D): void {
-        this.owner = node;
-        this._transform = node.transform;
-    }
+	setOwner(node: Sprite3D): void {
+		this.owner = node;
+		this._transform = node.transform;
+	}
 
-    setCollisionGroup(value: number) {
-        if (value != this._collisionGroup) {
-			this._btColliderObject.collisionFilterGroup = this._collisionGroup = value;
-        }
-    }
+	setCollisionGroup(value: number) {
+		if (value != this._collisionGroup) {
+			this._cannonColliderObject.collisionFilterGroup = this._collisionGroup = value;
+		}
+	}
 
-    setCanCollideWith(value: number) {
-        if (value != this._canCollideWith) {
-			this._btColliderObject.collisionFilterMask = this._canCollideWith = value;
-        }
-    }
+	setCanCollideWith(value: number) {
+		if (value != this._canCollideWith) {
+			this._cannonColliderObject.collisionFilterMask = this._canCollideWith = value;
+		}
+	}
 
-    protected _initCollider() {
-        this.setBounciness(this._restitution);
-        this.setfriction(this._friction);
-    }
+	protected _initCollider() {
+		this.setBounciness(this._restitution);
+		this.setfriction(this._friction);
+	}
 
-    protected getColliderType(): CannonColliderType {
-        return null;
-    }
+	protected getColliderType(): CannonColliderType {
+		return null;
+	}
 
-    /**
-     * @internal
-     */
-    protected _onScaleChange(scale: Vector3): void {
-		if(Vector3.equals(scale,this._scale)){
+	/**
+	 * @internal
+	 */
+	protected _onScaleChange(scale: Vector3): void {
+		if (Vector3.equals(scale, this._scale)) {
 			return;
 		}
 		scale.cloneTo(this._scale);
-		if(this._colliderShape){
+		if (this._colliderShape) {
 			this._colliderShape.setWorldScale(this._scale);
-			this._btColliderObject.updateMassProperties();
-			this._btColliderObject.updateBoundingRadius();
+			this._cannonColliderObject.updateMassProperties();
+			this._cannonColliderObject.updateBoundingRadius();
 		}
-    }
-    /**
+	}
+	/**
 	 * @internal
 	 */
-    protected _onShapeChange(shape: CannonColliderShape) {
-       //TODO:
-    }
+	protected _onShapeChange(shape: CannonColliderShape) {
+		//TODO:
+	}
 
-    
+
 	/**
 	 * @inheritDoc
 	 * @override
@@ -188,17 +191,17 @@ export class CannonCollider implements ICollider {
 		this._physicsManager.removeCollider(this);
 	}
 
-    
-    setColliderShape(shape: CannonColliderShape) {
-        if (shape == this._colliderShape)
-            return;
+
+	setColliderShape(shape: CannonColliderShape) {
+		if (shape == this._colliderShape)
+			return;
 		shape.setWorldScale(this._scale);
-        var lastColliderShape: CannonColliderShape = this._colliderShape;
-        if (lastColliderShape) {
-            lastColliderShape._attatched = false;
-            lastColliderShape._attatchedCollisionObject = null;
-        }
-        this._colliderShape = shape;
+		var lastColliderShape: CannonColliderShape = this._colliderShape;
+		if (lastColliderShape) {
+			lastColliderShape._attatched = false;
+			lastColliderShape._attatchedCollisionObject = null;
+		}
+		this._colliderShape = shape;
 		if (shape) {
 			if (shape._attatched) {
 				throw "PhysicsComponent: this shape has attatched to other entity.";
@@ -206,33 +209,33 @@ export class CannonCollider implements ICollider {
 				shape._attatched = true;
 				shape._attatchedCollisionObject = this;
 			}
-			if (this._btColliderObject) {
-				this._btColliderObject.shapes.length = 0;
-				this._btColliderObject.shapeOffsets.length = 0;
-				this._btColliderObject.shapeOrientations.length = 0;
+			if (this._cannonColliderObject) {
+				this._cannonColliderObject.shapes.length = 0;
+				this._cannonColliderObject.shapeOffsets.length = 0;
+				this._cannonColliderObject.shapeOrientations.length = 0;
 				shape.addToCannonBody();
 				(this._isSimulate && lastColliderShape) && (this._removeFromSimulation());//修改shape必须把Collison从物理世界中移除再重新添加
 				this._onShapeChange(shape);//
 				if ((this._isSimulate || !lastColliderShape) && this.componentEnable) {
-                    this._derivePhysicsTransformation(true);
+					this._derivePhysicsTransformation(true);
 					this._addToSimulation();
-                }
-            }
-		} else  if (this._isSimulate){
+				}
+			}
+		} else if (this._isSimulate) {
 			lastColliderShape && this._removeFromSimulation();
 		}
-    }
+	}
 
-     /**
-     * 	@internal
-     * 通过渲染矩阵更新物理矩阵。
-     */
+	/**
+	* 	@internal
+	* 通过渲染矩阵更新物理矩阵。
+	*/
 	_derivePhysicsTransformation(force: boolean): void {
-		var btColliderObject: CANNON.Body = this._btColliderObject;
+		var btColliderObject: CANNON.Body = this._cannonColliderObject;
 		this._innerDerivePhysicsTransformation(btColliderObject, force);
 	}
 
-    
+
 	/**
 	 * 	@internal
 	 *	通过渲染矩阵更新物理矩阵。
@@ -248,26 +251,26 @@ export class CannonCollider implements ICollider {
 				var physicPosition: Vector3 = CannonCollider._tempVector30;
 				var worldMat: Matrix4x4 = transform.worldMatrix;
 				Vector3.transformCoordinate(shapeOffset, worldMat, physicPosition);
-				btPosition.set(physicPosition.x,physicPosition.y,physicPosition.z);
+				btPosition.set(physicPosition.x, physicPosition.y, physicPosition.z);
 			} else {
-				btPosition.set(position.x,position.y,position.z);
+				btPosition.set(position.x, position.y, position.z);
 			}
-			physicTransformOut.position.set(btPosition.x,btPosition.y,btPosition.z);
+			physicTransformOut.position.set(btPosition.x, btPosition.y, btPosition.z);
 			this._setTransformFlag(Transform3D.TRANSFORM_WORLDPOSITION, false);
 		}
 
 		if (force || this._getTransformFlag(Transform3D.TRANSFORM_WORLDQUATERNION)) {
 			var shapeRotation: Quaternion = this._colliderShape._localRotation;
-			var btRotation: CANNON.Quaternion= CannonCollider._btQuaternion0;
+			var btRotation: CANNON.Quaternion = CannonCollider._btQuaternion0;
 			var rotation: Quaternion = transform.rotation;
 			if (shapeRotation.x !== 0 || shapeRotation.y !== 0 || shapeRotation.z !== 0 || shapeRotation.w !== 1) {
 				var physicRotation: Quaternion = CannonCollider._tempQuaternion0;
 				CannonCollider.physicQuaternionMultiply(rotation.x, rotation.y, rotation.z, rotation.w, shapeRotation, physicRotation);
-				btRotation.set(physicRotation.x,physicRotation.y,physicRotation.z,physicRotation.w)
+				btRotation.set(physicRotation.x, physicRotation.y, physicRotation.z, physicRotation.w)
 			} else {
-				btRotation.set(rotation.x,rotation.y,rotation.z,rotation.w)
+				btRotation.set(rotation.x, rotation.y, rotation.z, rotation.w)
 			}
-			physicTransformOut.quaternion.set(btRotation.x,btRotation.y,btRotation.z,btRotation.w); 
+			physicTransformOut.quaternion.set(btRotation.x, btRotation.y, btRotation.z, btRotation.w);
 			this._setTransformFlag(Transform3D.TRANSFORM_WORLDQUATERNION, false);
 		}
 
@@ -277,12 +280,12 @@ export class CannonCollider implements ICollider {
 		}
 	}
 
-    /**
-     * @internal
-     * 通过物理矩阵更新渲染矩阵。
-     */
-    _updateTransformComponent(physicsTransform: CANNON.Body): void {
-        var colliderShape: CannonColliderShape = this._colliderShape;
+	/**
+	 * @internal
+	 * 通过物理矩阵更新渲染矩阵。
+	 */
+	_updateTransformComponent(physicsTransform: CANNON.Body): void {
+		var colliderShape: CannonColliderShape = this._colliderShape;
 		var localOffset: Vector3 = colliderShape._localOffset;
 		var localRotation: Quaternion = colliderShape._localRotation;
 
@@ -290,8 +293,8 @@ export class CannonCollider implements ICollider {
 		var position: Vector3 = transform.position;
 		var rotation: Quaternion = transform.rotation;
 
-		var btPosition:CANNON.Vec3 = physicsTransform.position;
-		var btRotation:CANNON.Quaternion = physicsTransform.quaternion;
+		var btPosition: CANNON.Vec3 = physicsTransform.position;
+		var btRotation: CANNON.Quaternion = physicsTransform.quaternion;
 
 		var btRotX: number = btRotation.x;
 		var btRotY: number = btRotation.y;
@@ -318,58 +321,58 @@ export class CannonCollider implements ICollider {
 			rotShapePosition.z = localOffset.z;
 			Vector3.transformQuat(rotShapePosition, rotation, rotShapePosition);
 
-			position.x = btPosition.x-rotShapePosition.x;
-			position.y = btPosition.y-rotShapePosition.z;
-			position.z = btPosition.z-rotShapePosition.y;
+			position.x = btPosition.x - rotShapePosition.x;
+			position.y = btPosition.y - rotShapePosition.z;
+			position.z = btPosition.z - rotShapePosition.y;
 		} else {
-			position.x =  btPosition.x;
+			position.x = btPosition.x;
 			position.y = btPosition.y;
 			position.z = btPosition.z;
 
 		}
 		transform.position = position;
-    }
+	}
 
-    /**
-     * @internal
-     */
-    _getTransformFlag(type: number): boolean {
-        return (this._transformFlag & type) != 0;
-    }
+	/**
+	 * @internal
+	 */
+	_getTransformFlag(type: number): boolean {
+		return (this._transformFlag & type) != 0;
+	}
 
-    /**
-     * @internal
-     */
-    _setTransformFlag(type: number, value: boolean): void {
-        if (value)
-            this._transformFlag |= type;
-        else
-            this._transformFlag &= ~type;
-    }
+	/**
+	 * @internal
+	 */
+	_setTransformFlag(type: number, value: boolean): void {
+		if (value)
+			this._transformFlag |= type;
+		else
+			this._transformFlag &= ~type;
+	}
 
-    transformChanged(flag: number): void {
-        this._transformFlag = flag;
-        if (this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
-            this._physicsManager._physicsUpdateList.add(this);
-        }
-    }
+	transformChanged(flag: number): void {
+		this._transformFlag = flag;
+		if (this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
+			this._physicsManager._physicsUpdateList.add(this);
+		}
+	}
 
-    setBounciness(value: number): void {
-        this._restitution = value;
-        this._btColliderObject && (this._btColliderObject.material.restitution = value);
-    }
+	setBounciness(value: number): void {
+		this._restitution = value;
+		this._cannonColliderObject && (this._cannonColliderObject.material.restitution = value);
+	}
 
-    setfriction(value: number): void {
-        this._friction = value;
-        this._btColliderObject && (this._btColliderObject.material.friction = value);
-    }
-    destroy(): void{
-        this._destroyed = true;
-        CannonCollider._physicObjectsMap.delete(this._id);
-		this._btColliderObject = null;
+	setfriction(value: number): void {
+		this._friction = value;
+		this._cannonColliderObject && (this._cannonColliderObject.material.friction = value);
+	}
+	destroy(): void {
+		this._destroyed = true;
+		CannonCollider._physicObjectsMap.delete(this._id);
+		this._cannonColliderObject = null;
 		this._colliderShape.destroy();
-		this._btColliderObject = null;
+		this._cannonColliderObject = null;
 		this._colliderShape = null;
 		this._physicsManager = null;
-    }
+	}
 }

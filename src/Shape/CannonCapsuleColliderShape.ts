@@ -30,7 +30,7 @@ export class CannonCapsuleColliderShape extends CannonColliderShape implements I
         let scalez = Math.abs(this._scale.z);
 
         let cvec3:CANNON.Vec3 = CannonColliderShape._btVector30;
-        let body:CANNON.Body = this._attatchedCollisionObject._btColliderObject;
+        let body:CANNON.Body = this._attatchedCollisionObject._cannonColliderObject;
         body.shapes.length = 0;
 		body.shapeOffsets.length = 0;
 		body.shapeOrientations.length = 0;

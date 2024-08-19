@@ -28,8 +28,8 @@ export class CannonMeshCollderShape extends CannonColliderShape implements IMesh
 
     protected _updateShapeContent() {
         let btColliderObject = null;
-        if (this._attatchedCollisionObject && this._attatchedCollisionObject._btColliderObject) {
-            btColliderObject = this._attatchedCollisionObject._btColliderObject;
+        if (this._attatchedCollisionObject && this._attatchedCollisionObject._cannonColliderObject) {
+            btColliderObject = this._attatchedCollisionObject._cannonColliderObject;
         }
         if (this._btShape && btColliderObject) {
             btColliderObject.shapes.length = 0;
