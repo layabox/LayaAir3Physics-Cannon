@@ -41,8 +41,8 @@ export class CannonStaticCollider extends CannonCollider implements IStaticColli
         this._isTrigger = value;
         if (this._cannonColliderObject) {
 			this._cannonColliderObject.isTrigger = value;
+            var flag = this._cannonColliderObject.type;
 			if (value) {
-				var flag = this._cannonColliderObject.type;
 				//TODO:可能要改
 				this._cannonColliderObject.collisionResponse = false;
 				if((flag&CANNON.Body.STATIC)===0)

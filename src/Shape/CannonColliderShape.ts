@@ -49,14 +49,13 @@ export class CannonColliderShape implements IColliderShape {
 	static getLocalQuatation(upAxis: number, rotation: Quaternion): void {
 		switch (upAxis) {
 			case Physics3DColliderShape.SHAPEORIENTATION_UPX:
-				rotation.identity();
+				Quaternion.createFromAxisAngle(Vector3.UnitY, Math.PI / 2, rotation);
 				break;
 			case Physics3DColliderShape.SHAPEORIENTATION_UPY:
-				Quaternion.createFromAxisAngle(Vector3.UnitX, Math.PI / 2, rotation);
-
+				Quaternion.createFromAxisAngle(Vector3.UnitX, -Math.PI / 2, rotation);
 				break;
 			case Physics3DColliderShape.SHAPEORIENTATION_UPZ:
-				Quaternion.createFromAxisAngle(Vector3.UnitZ, -Math.PI / 2, rotation);
+				rotation.identity();
 				break;
 			default:
 				throw "CapsuleColliderShape:unknown orientation.";

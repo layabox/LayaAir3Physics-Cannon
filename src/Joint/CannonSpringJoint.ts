@@ -39,7 +39,7 @@ export class CannonSpringJoint extends ConnonJoint implements ISpringJoint {
         this._spring.restLength = tolerance;
     }
     setStiffness(stiffness: number): void {
-        this._spring.stffness = stiffness;
+        this._spring.stiffness = stiffness;
     }
     setDamping(damping: number): void {
         this._spring.damping = damping;

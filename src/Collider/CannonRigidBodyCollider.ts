@@ -53,7 +53,7 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MassCenter, false);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxAngularVelocity, false);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxDepenetrationVelocity, false);
-		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, false);
+		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, true);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepAngularVelocity, false);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SolverIterations, false);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_AllowDetectionMode, true);
@@ -66,6 +66,8 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorque, true);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyImpulse, true);
 		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorqueImpulse, true);
+		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldPosition, true);
+		this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldOrientation, true);
 	}
 
 	getCapable(value: number): boolean {
@@ -142,6 +144,14 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 		return false;
 	}
 
+	allowSleep(bAllow) {
+		if (this._isKinematic)
+		{
+			return;
+		}
+		this._cannonColliderObject.allowSleep = bAllow;
+	}
+
 	/**
 	 * 是否为运动物体，如果为true仅可通过transform属性移动物体,而非其他力相关属性。
 	 */
@@ -154,11 +164,13 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 			natColObj.type = CANNON.Body.KINEMATIC;
 			this._enableProcessCollisions = false;
 			this._updateMass(0);//必须设置Mass为0来保证InverMass为0
+			this.inPhysicUpdateListIndex = -1;
 		} else {
 			natColObj.allowSleep = true;
 			natColObj.type = CANNON.Body.DYNAMIC;
 			this._enableProcessCollisions = true;
 			this._updateMass(this._mass);
+			this.inPhysicUpdateListIndex = undefined;
 		}
 		natColObj.velocity.set(0.0, 0.0, 0.0);
 		natColObj.angularVelocity.set(0.0, 0.0, 0.0);
@@ -240,17 +252,17 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 		this._isTrigger = value;
 		if (this._cannonColliderObject) {
 			this._cannonColliderObject.isTrigger = value;
+			var flag = this._cannonColliderObject.type;
 			if (value) {
-				var flag = this._cannonColliderObject.type;
 				//TODO:可能要改
 				this._cannonColliderObject.collisionResponse = false;
-				if ((flag & CANNON.Body.STATIC) === 0)
-					this._cannonColliderObject.type |= CANNON.Body.STATIC;
+				// if ((flag & CANNON.Body.STATIC) === 0)
+				// 	this._cannonColliderObject.type |= CANNON.Body.STATIC;
 			} else {
 				//TODO：可能要改
 				this._cannonColliderObject.collisionResponse = true;
-				if ((flag & CANNON.Body.STATIC) !== 0)
-					this._cannonColliderObject.type ^= CANNON.Body.STATIC;
+				// if ((flag & CANNON.Body.STATIC) !== 0)
+				// 	this._cannonColliderObject.type ^= CANNON.Body.STATIC;
 			}
 		}
 	}
@@ -262,10 +274,16 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
 	 */
 	constructor(physicsManager: CannonPysiceManager) {
 		super(physicsManager);
-		if (!this._isKinematic)
-			this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
-		else
+		if (this._isKinematic)
+		{
 			this._cannonColliderObject.type = CANNON.Body.KINEMATIC;
+			this.inPhysicUpdateListIndex = -1;
+		}
+		else
+		{
+			this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
+			this.inPhysicUpdateListIndex = undefined;
+		}
 	}
 	getLinearVelocity(): Vector3 {
 		// throw new Error("Method not implemented.");

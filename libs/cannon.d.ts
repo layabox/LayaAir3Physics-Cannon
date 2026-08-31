@@ -830,7 +830,7 @@ declare module CANNON {
     export class Spring {
 
         restLength: number;
-        stffness: number;
+        stiffness: number;
         damping: number;
         bodyA: Body;
         bodyB: Body;
