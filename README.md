@@ -30,6 +30,7 @@ Open `CannonPhysics.laya` and run the startup scene. Twelve bodies fall onto the
 
 ```sh
 npm run check
+npm test
 npm run preview
 npm run build:web
 ```

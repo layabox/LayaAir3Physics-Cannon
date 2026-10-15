@@ -20,7 +20,7 @@ export class CannonBoxColliderShape extends CannonColliderShape implements IBoxC
 
     protected _updateShapeContent() {
         let box: CANNON.Box = this._btShape as CANNON.Box;
-        box.halfExtents.set(this._size.x / 2 * this._scale.x, this._size.y / 2 * this._scale.y, this._size.z / 2 * this._scale.z);
+        box.halfExtents.set(Math.abs(this._size.x * this._scale.x) / 2, Math.abs(this._size.y * this._scale.y) / 2, Math.abs(this._size.z * this._scale.z) / 2);
         box.updateConvexPolyhedronRepresentation();
         box.updateBoundingSphereRadius();
         super._updateShapeContent();

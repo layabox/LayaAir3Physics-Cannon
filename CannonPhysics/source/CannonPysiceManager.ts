@@ -90,6 +90,17 @@ export class CannonPysiceManager implements IPhysicsManager {
         add(collider: CannonCollider): void {
             collider.inPhysicUpdateListIndex = this.length;
             this.elements[this.length++] = collider;
+        },
+        remove(collider: CannonCollider): void {
+            const index = collider.inPhysicUpdateListIndex;
+            if (index < 0) return;
+            const last = this.elements[--this.length];
+            if (index < this.length) {
+                this.elements[index] = last;
+                last.inPhysicUpdateListIndex = index;
+            }
+            this.elements.length = this.length;
+            collider.inPhysicUpdateListIndex = -1;
         }
     };
 
@@ -121,7 +132,7 @@ export class CannonPysiceManager implements IPhysicsManager {
         this.setGravity(this._gravity);
     }
     setActiveCollider(collider: CannonCollider, value: boolean): void {
-        // throw new Error("Method not implemented.");
+        if (!value) this._physicsUpdateList.remove(collider);
         collider.active = value;
         if (value) {
             collider._physicsManager = this;
@@ -168,6 +179,7 @@ export class CannonPysiceManager implements IPhysicsManager {
             physicCollider.inPhysicUpdateListIndex = -1;//置空索引
         }
         this._physicsUpdateList.length = 0;//清空物理更新队列
+        this._physicsUpdateList.elements.length = 0;
     }
 
 
@@ -250,8 +262,8 @@ export class CannonPysiceManager implements IPhysicsManager {
             let ownerB = colliderB.owner;
             if (loopCount - curFrameCol._lastUpdateFrame === 1) {
                 if (curFrameCol._isTrigger) {
-                    ownerA.event(Event.TRIGGER_STAY, colliderB);
-                    ownerB.event(Event.TRIGGER_STAY, colliderA);
+                    ownerA.event(Event.TRIGGER_STAY, colliderB.component);
+                    ownerB.event(Event.TRIGGER_STAY, colliderA.component);
                 } else {
                     curFrameCol.other = colliderB.component;
                     ownerA.event(Event.COLLISION_STAY, curFrameCol);
@@ -260,8 +272,8 @@ export class CannonPysiceManager implements IPhysicsManager {
                 }
             } else {
                 if (curFrameCol._isTrigger) {
-                    ownerA.event(Event.TRIGGER_ENTER, colliderB);
-                    ownerB.event(Event.TRIGGER_ENTER, colliderA);
+                    ownerA.event(Event.TRIGGER_ENTER, colliderB.component);
+                    ownerB.event(Event.TRIGGER_ENTER, colliderA.component);
                 } else {
                     curFrameCol.other = colliderB.component;
                     ownerA.event(Event.COLLISION_ENTER, curFrameCol);
@@ -282,8 +294,8 @@ export class CannonPysiceManager implements IPhysicsManager {
             if (loopCount - preFrameCol._updateFrame === 1) {
                 this._collisionsUtils.recoverCollision(preFrameCol);//回收collision对象
                 if (preFrameCol._isTrigger) {
-                    ownerA.event(Event.TRIGGER_EXIT, preColliderB);
-                    ownerB.event(Event.TRIGGER_EXIT, preColliderA);
+                    ownerA.event(Event.TRIGGER_EXIT, preColliderB.component);
+                    ownerB.event(Event.TRIGGER_EXIT, preColliderA.component);
                 } else {
                     preFrameCol.other = preColliderB.component;
                     ownerA.event(Event.COLLISION_EXIT, preFrameCol);
@@ -319,6 +331,7 @@ export class CannonPysiceManager implements IPhysicsManager {
         }
         collider._derivePhysicsTransformation(true);
         this._discreteDynamicsWorld.addBody(collider._cannonColliderObject);
+        collider._cannonColliderObject.aabbNeedsUpdate = true;
         collider._isSimulate = true;
 
     }
@@ -327,6 +340,7 @@ export class CannonPysiceManager implements IPhysicsManager {
      * @param collider
      */
     removeCollider(collider: CannonCollider): void {
+        this._physicsUpdateList.remove(collider);
         if (!this._discreteDynamicsWorld)
             throw "Simulation:Cannot perform this action when the physics engine is set to CollisionsOnly";
         if (!collider._isSimulate) {
@@ -385,6 +399,8 @@ export class CannonPysiceManager implements IPhysicsManager {
         CannonCollider._addUpdateList = true;
         this._updateCollisions();
         this.dispatchCollideEvent();
+        ++this._updateCount;
+        this._collisionsUtils.recoverAllHitResultsPool();
     }
 
     /**

@@ -54,7 +54,7 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MassCenter, false);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxAngularVelocity, false);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxDepenetrationVelocity, false);
-        this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, false);
+        this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, true);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepAngularVelocity, false);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SolverIterations, false);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_AllowDetectionMode, true);
@@ -67,6 +67,8 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorque, true);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyImpulse, true);
         this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorqueImpulse, true);
+        this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldPosition, true);
+        this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldOrientation, true);
     }
 
     getCapable(value: number): boolean {
@@ -153,16 +155,19 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
         var natColObj: CANNON.Body = this._cannonColliderObject;
         if (value) {
             natColObj.type = CANNON.Body.KINEMATIC;
+            natColObj.allowSleep = false;
             this._enableProcessCollisions = false;
             this._updateMass(0);//必须设置Mass为0来保证InverMass为0
         } else {
-            natColObj.allowSleep = true;
+            natColObj.allowSleep = this._allowSleep;
             natColObj.type = CANNON.Body.DYNAMIC;
             this._enableProcessCollisions = true;
             this._updateMass(this._mass);
         }
+        natColObj.wakeUp();
         natColObj.velocity.set(0.0, 0.0, 0.0);
         natColObj.angularVelocity.set(0.0, 0.0, 0.0);
+        this.inPhysicUpdateListIndex = -1;
         canInSimulation && this._addToSimulation();
     }
 
@@ -226,10 +231,16 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
     }
 
     setWorldPosition(value: Vector3): void {
-        this._cannonColliderObject && this._cannonColliderObject.position.set(value.x, value.y, value.z);
+        if (this._cannonColliderObject) {
+            this._cannonColliderObject.position.set(value.x, value.y, value.z);
+            this._cannonColliderObject.aabbNeedsUpdate = true;
+        }
     }
     setWorldRotation(value: Quaternion): void {
-        this._cannonColliderObject && this._cannonColliderObject.quaternion.set(value.x, value.y, value.z, value.w);
+        if (this._cannonColliderObject) {
+            this._cannonColliderObject.quaternion.set(value.x, value.y, value.z, value.w);
+            this._cannonColliderObject.aabbNeedsUpdate = true;
+        }
     }
 
 
@@ -241,18 +252,8 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
         this._isTrigger = value;
         if (this._cannonColliderObject) {
             this._cannonColliderObject.isTrigger = value;
-            if (value) {
-                var flag = this._cannonColliderObject.type;
-                //TODO:可能要改
-                this._cannonColliderObject.collisionResponse = false;
-                if ((flag & CANNON.Body.STATIC) === 0)
-                    this._cannonColliderObject.type |= CANNON.Body.STATIC;
-            } else {
-                //TODO：可能要改
-                this._cannonColliderObject.collisionResponse = true;
-                if ((flag & CANNON.Body.STATIC) !== 0)
-                    this._cannonColliderObject.type ^= CANNON.Body.STATIC;
-            }
+            // Trigger state must never change STATIC/DYNAMIC/KINEMATIC body type.
+            this._cannonColliderObject.collisionResponse = !value;
         }
     }
 
@@ -263,10 +264,8 @@ export class CannonRigidBodyCollider extends CannonCollider implements IDynamicC
      */
     constructor(physicsManager: CannonPysiceManager) {
         super(physicsManager);
-        if (!this._isKinematic)
-            this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
-        else
-            this._cannonColliderObject.type = CANNON.Body.KINEMATIC;
+        this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
+        this._enableProcessCollisions = true;
     }
     getLinearVelocity(): Vector3 {
         // throw new Error("Method not implemented.");

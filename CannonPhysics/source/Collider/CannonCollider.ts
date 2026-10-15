@@ -42,8 +42,13 @@ export class CannonCollider implements ICollider {
 
     active: boolean;
 
+    protected _allowSleep: boolean = true;
+
     allowSleep(value: boolean): void {
-        this._cannonColliderObject.allowSleep = value;
+        this._allowSleep = value;
+        if (this._cannonColliderObject) {
+            this._cannonColliderObject.allowSleep = this._cannonColliderObject.type !== CANNON.Body.KINEMATIC && value;
+        }
     }
 
 
@@ -94,7 +99,7 @@ export class CannonCollider implements ICollider {
     _colliderShape: CannonColliderShape;
 
     //update list index
-    inPhysicUpdateListIndex: number;
+    inPhysicUpdateListIndex: number = -1;
 
 
     /** @internal */
@@ -209,7 +214,7 @@ export class CannonCollider implements ICollider {
     setColliderShape(shape: CannonColliderShape) {
         if (shape == this._colliderShape)
             return;
-        shape.setWorldScale(this._scale);
+        shape && shape.setWorldScale(this._scale);
         var lastColliderShape: CannonColliderShape = this._colliderShape;
         if (lastColliderShape) {
             lastColliderShape._attatched = false;
@@ -230,7 +235,7 @@ export class CannonCollider implements ICollider {
                 shape.addToCannonBody();
                 (this._isSimulate && lastColliderShape) && (this._removeFromSimulation());//修改shape必须把Collison从物理世界中移除再重新添加
                 this._onShapeChange(shape);//
-                if ((this._isSimulate || !lastColliderShape) && this.componentEnable) {
+                if (this.componentEnable) {
                     this._derivePhysicsTransformation(true);
                     this._addToSimulation();
                 }
@@ -257,40 +262,34 @@ export class CannonCollider implements ICollider {
     _innerDerivePhysicsTransformation(physicTransformOut: CANNON.Body, force: boolean): void {
         var transform: Transform3D = ((<Sprite3D>this.owner)).transform;
 
-        if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION)) {
-            var shapeOffset: Vector3 = this._colliderShape._localOffset;
-            var position: Vector3 = transform.position;
-            var btPosition: CANNON.Vec3 = CannonCollider._btVector30;
-            if (shapeOffset.x !== 0 || shapeOffset.y !== 0 || shapeOffset.z !== 0) {
-                var physicPosition: Vector3 = CannonCollider._tempVector30;
-                var worldMat: Matrix4x4 = transform.worldMatrix;
-                Vector3.transformCoordinate(shapeOffset, worldMat, physicPosition);
-                btPosition.set(physicPosition.x, physicPosition.y, physicPosition.z);
-            } else {
-                btPosition.set(position.x, position.y, position.z);
-            }
-            physicTransformOut.position.set(btPosition.x, btPosition.y, btPosition.z);
+        const positionChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION);
+        const rotationChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION);
+        const scaleChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE);
+
+        if (scaleChanged) {
+            this._onScaleChange(transform.getWorldLossyScale());
+            this._setTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE, false);
+        }
+
+        // A rotated or scaled local offset also changes the body's world position.
+        if (positionChanged || rotationChanged || scaleChanged) {
+            const offset = CannonCollider._tempVector30;
+            Vector3.transformCoordinate(this._colliderShape._localOffset, transform.worldMatrix, offset);
+            physicTransformOut.position.set(offset.x, offset.y, offset.z);
             this._setTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION, false);
         }
 
-        if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION)) {
-            var shapeRotation: Quaternion = this._colliderShape._localRotation;
-            var btRotation: CANNON.Quaternion = CannonCollider._btQuaternion0;
-            var rotation: Quaternion = transform.rotation;
-            if (shapeRotation.x !== 0 || shapeRotation.y !== 0 || shapeRotation.z !== 0 || shapeRotation.w !== 1) {
-                var physicRotation: Quaternion = CannonCollider._tempQuaternion0;
-                CannonCollider.physicQuaternionMultiply(rotation.x, rotation.y, rotation.z, rotation.w, shapeRotation, physicRotation);
-                btRotation.set(physicRotation.x, physicRotation.y, physicRotation.z, physicRotation.w)
-            } else {
-                btRotation.set(rotation.x, rotation.y, rotation.z, rotation.w)
-            }
-            physicTransformOut.quaternion.set(btRotation.x, btRotation.y, btRotation.z, btRotation.w);
+        if (rotationChanged) {
+            const rotation = transform.rotation;
+            const shapeRotation = this._colliderShape._localRotation;
+            const physicsRotation = CannonCollider._tempQuaternion0;
+            CannonCollider.physicQuaternionMultiply(rotation.x, rotation.y, rotation.z, rotation.w, shapeRotation, physicsRotation);
+            physicTransformOut.quaternion.set(physicsRotation.x, physicsRotation.y, physicsRotation.z, physicsRotation.w);
             this._setTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION, false);
         }
 
-        if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE)) {
-            this._onScaleChange(transform.getWorldLossyScale());
-            this._setTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE, false);
+        if (positionChanged || rotationChanged || scaleChanged) {
+            physicTransformOut.aabbNeedsUpdate = true;
         }
     }
 
@@ -330,14 +329,12 @@ export class CannonCollider implements ICollider {
         if (localOffset.x !== 0 || localOffset.y !== 0 || localOffset.z !== 0) {
             var rotShapePosition: Vector3 = CannonCollider._tempVector30;
 
-            rotShapePosition.x = localOffset.x;
-            rotShapePosition.y = localOffset.y;
-            rotShapePosition.z = localOffset.z;
-            Vector3.transformQuat(rotShapePosition, rotation, rotShapePosition);
+            // Preserve each axis of the world scale, including reflected transforms.
+            Vector3.TransformNormal(localOffset, transform.worldMatrix, rotShapePosition);
 
             position.x = btPosition.x - rotShapePosition.x;
-            position.y = btPosition.y - rotShapePosition.z;
-            position.z = btPosition.z - rotShapePosition.y;
+            position.y = btPosition.y - rotShapePosition.y;
+            position.z = btPosition.z - rotShapePosition.z;
         } else {
             position.x = btPosition.x;
             position.y = btPosition.y;
@@ -365,8 +362,8 @@ export class CannonCollider implements ICollider {
     }
 
     transformChanged(flag: number): void {
-        this._transformFlag = flag;
-        if (this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
+        this._transformFlag |= flag;
+        if (this._physicsManager && CannonCollider._addUpdateList && this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
             this._physicsManager._physicsUpdateList.add(this);
         }
     }

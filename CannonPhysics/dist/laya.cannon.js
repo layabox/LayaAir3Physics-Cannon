@@ -13906,9 +13906,12 @@ var __LayaCannon = (() => {
   })(CannonColliderType || {});
   var _CannonCollider = class _CannonCollider {
     constructor(physicsManager) {
+      this._allowSleep = true;
       /** @internal */
       this._transformFlag = 2147483647;
       this._destroyed = false;
+      //update list index
+      this.inPhysicUpdateListIndex = -1;
       //TODO:不用声明,TODO:删除相关判断
       this._isSimulate = false;
       /** 弹力*/
@@ -13929,7 +13932,10 @@ var __LayaCannon = (() => {
       this.setCanCollideWith(CannonPysiceManager.COLLISIONFILTERGROUP_ALLFILTER);
     }
     allowSleep(value) {
-      this._cannonColliderObject.allowSleep = value;
+      this._allowSleep = value;
+      if (this._cannonColliderObject) {
+        this._cannonColliderObject.allowSleep = this._cannonColliderObject.type !== CANNON.Body.KINEMATIC && value;
+      }
     }
     static physicQuaternionMultiply(lx, ly, lz, lw, right, out) {
       var rx = right.x;
@@ -14015,7 +14021,7 @@ var __LayaCannon = (() => {
     setColliderShape(shape) {
       if (shape == this._colliderShape)
         return;
-      shape.setWorldScale(this._scale);
+      shape && shape.setWorldScale(this._scale);
       var lastColliderShape = this._colliderShape;
       if (lastColliderShape) {
         lastColliderShape._attatched = false;
@@ -14036,7 +14042,7 @@ var __LayaCannon = (() => {
           shape.addToCannonBody();
           this._isSimulate && lastColliderShape && this._removeFromSimulation();
           this._onShapeChange(shape);
-          if ((this._isSimulate || !lastColliderShape) && this.componentEnable) {
+          if (this.componentEnable) {
             this._derivePhysicsTransformation(true);
             this._addToSimulation();
           }
@@ -14059,38 +14065,29 @@ var __LayaCannon = (() => {
      */
     _innerDerivePhysicsTransformation(physicTransformOut, force) {
       var transform = this.owner.transform;
-      if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION)) {
-        var shapeOffset = this._colliderShape._localOffset;
-        var position = transform.position;
-        var btPosition = _CannonCollider._btVector30;
-        if (shapeOffset.x !== 0 || shapeOffset.y !== 0 || shapeOffset.z !== 0) {
-          var physicPosition = _CannonCollider._tempVector30;
-          var worldMat = transform.worldMatrix;
-          Vector3.transformCoordinate(shapeOffset, worldMat, physicPosition);
-          btPosition.set(physicPosition.x, physicPosition.y, physicPosition.z);
-        } else {
-          btPosition.set(position.x, position.y, position.z);
-        }
-        physicTransformOut.position.set(btPosition.x, btPosition.y, btPosition.z);
-        this._setTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION, false);
-      }
-      if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION)) {
-        var shapeRotation = this._colliderShape._localRotation;
-        var btRotation = _CannonCollider._btQuaternion0;
-        var rotation = transform.rotation;
-        if (shapeRotation.x !== 0 || shapeRotation.y !== 0 || shapeRotation.z !== 0 || shapeRotation.w !== 1) {
-          var physicRotation = _CannonCollider._tempQuaternion0;
-          _CannonCollider.physicQuaternionMultiply(rotation.x, rotation.y, rotation.z, rotation.w, shapeRotation, physicRotation);
-          btRotation.set(physicRotation.x, physicRotation.y, physicRotation.z, physicRotation.w);
-        } else {
-          btRotation.set(rotation.x, rotation.y, rotation.z, rotation.w);
-        }
-        physicTransformOut.quaternion.set(btRotation.x, btRotation.y, btRotation.z, btRotation.w);
-        this._setTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION, false);
-      }
-      if (force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE)) {
+      const positionChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION);
+      const rotationChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION);
+      const scaleChanged = force || this._getTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE);
+      if (scaleChanged) {
         this._onScaleChange(transform.getWorldLossyScale());
         this._setTransformFlag(TransformFlags.TRANSFORM_WORLDSCALE, false);
+      }
+      if (positionChanged || rotationChanged || scaleChanged) {
+        const offset = _CannonCollider._tempVector30;
+        Vector3.transformCoordinate(this._colliderShape._localOffset, transform.worldMatrix, offset);
+        physicTransformOut.position.set(offset.x, offset.y, offset.z);
+        this._setTransformFlag(TransformFlags.TRANSFORM_WORLDPOSITION, false);
+      }
+      if (rotationChanged) {
+        const rotation = transform.rotation;
+        const shapeRotation = this._colliderShape._localRotation;
+        const physicsRotation = _CannonCollider._tempQuaternion0;
+        _CannonCollider.physicQuaternionMultiply(rotation.x, rotation.y, rotation.z, rotation.w, shapeRotation, physicsRotation);
+        physicTransformOut.quaternion.set(physicsRotation.x, physicsRotation.y, physicsRotation.z, physicsRotation.w);
+        this._setTransformFlag(TransformFlags.TRANSFORM_WORLDQUATERNION, false);
+      }
+      if (positionChanged || rotationChanged || scaleChanged) {
+        physicTransformOut.aabbNeedsUpdate = true;
       }
     }
     /**
@@ -14123,13 +14120,10 @@ var __LayaCannon = (() => {
       transform.rotation = rotation;
       if (localOffset.x !== 0 || localOffset.y !== 0 || localOffset.z !== 0) {
         var rotShapePosition = _CannonCollider._tempVector30;
-        rotShapePosition.x = localOffset.x;
-        rotShapePosition.y = localOffset.y;
-        rotShapePosition.z = localOffset.z;
-        Vector3.transformQuat(rotShapePosition, rotation, rotShapePosition);
+        Vector3.TransformNormal(localOffset, transform.worldMatrix, rotShapePosition);
         position.x = btPosition.x - rotShapePosition.x;
-        position.y = btPosition.y - rotShapePosition.z;
-        position.z = btPosition.z - rotShapePosition.y;
+        position.y = btPosition.y - rotShapePosition.y;
+        position.z = btPosition.z - rotShapePosition.z;
       } else {
         position.x = btPosition.x;
         position.y = btPosition.y;
@@ -14153,8 +14147,8 @@ var __LayaCannon = (() => {
         this._transformFlag &= ~type;
     }
     transformChanged(flag) {
-      this._transformFlag = flag;
-      if (this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
+      this._transformFlag |= flag;
+      if (this._physicsManager && _CannonCollider._addUpdateList && this.inPhysicUpdateListIndex == -1 && !this._enableProcessCollisions) {
         this._physicsManager._physicsUpdateList.add(this);
       }
     }
@@ -14288,7 +14282,7 @@ var __LayaCannon = (() => {
       this._spring.restLength = tolerance;
     }
     setStiffness(stiffness) {
-      this._spring.stffness = stiffness;
+      this._spring.stiffness = stiffness;
     }
     setDamping(damping) {
       this._spring.damping = damping;
@@ -14313,6 +14307,17 @@ var __LayaCannon = (() => {
         add(collider) {
           collider.inPhysicUpdateListIndex = this.length;
           this.elements[this.length++] = collider;
+        },
+        remove(collider) {
+          const index = collider.inPhysicUpdateListIndex;
+          if (index < 0) return;
+          const last = this.elements[--this.length];
+          if (index < this.length) {
+            this.elements[index] = last;
+            last.inPhysicUpdateListIndex = index;
+          }
+          this.elements.length = this.length;
+          collider.inPhysicUpdateListIndex = -1;
         }
       };
       /**@internal	*/
@@ -14340,6 +14345,7 @@ var __LayaCannon = (() => {
       ;
     }
     setActiveCollider(collider, value) {
+      if (!value) this._physicsUpdateList.remove(collider);
       collider.active = value;
       if (value) {
         collider._physicsManager = this;
@@ -14382,6 +14388,7 @@ var __LayaCannon = (() => {
         physicCollider.inPhysicUpdateListIndex = -1;
       }
       this._physicsUpdateList.length = 0;
+      this._physicsUpdateList.elements.length = 0;
     }
     /**
      * @internal
@@ -14457,8 +14464,8 @@ var __LayaCannon = (() => {
         let ownerB = colliderB.owner;
         if (loopCount - curFrameCol._lastUpdateFrame === 1) {
           if (curFrameCol._isTrigger) {
-            ownerA.event(Event.TRIGGER_STAY, colliderB);
-            ownerB.event(Event.TRIGGER_STAY, colliderA);
+            ownerA.event(Event.TRIGGER_STAY, colliderB.component);
+            ownerB.event(Event.TRIGGER_STAY, colliderA.component);
           } else {
             curFrameCol.other = colliderB.component;
             ownerA.event(Event.COLLISION_STAY, curFrameCol);
@@ -14467,8 +14474,8 @@ var __LayaCannon = (() => {
           }
         } else {
           if (curFrameCol._isTrigger) {
-            ownerA.event(Event.TRIGGER_ENTER, colliderB);
-            ownerB.event(Event.TRIGGER_ENTER, colliderA);
+            ownerA.event(Event.TRIGGER_ENTER, colliderB.component);
+            ownerB.event(Event.TRIGGER_ENTER, colliderA.component);
           } else {
             curFrameCol.other = colliderB.component;
             ownerA.event(Event.COLLISION_ENTER, curFrameCol);
@@ -14488,8 +14495,8 @@ var __LayaCannon = (() => {
         if (loopCount - preFrameCol._updateFrame === 1) {
           this._collisionsUtils.recoverCollision(preFrameCol);
           if (preFrameCol._isTrigger) {
-            ownerA.event(Event.TRIGGER_EXIT, preColliderB);
-            ownerB.event(Event.TRIGGER_EXIT, preColliderA);
+            ownerA.event(Event.TRIGGER_EXIT, preColliderB.component);
+            ownerB.event(Event.TRIGGER_EXIT, preColliderA.component);
           } else {
             preFrameCol.other = preColliderB.component;
             ownerA.event(Event.COLLISION_EXIT, preFrameCol);
@@ -14521,6 +14528,7 @@ var __LayaCannon = (() => {
       }
       collider._derivePhysicsTransformation(true);
       this._discreteDynamicsWorld.addBody(collider._cannonColliderObject);
+      collider._cannonColliderObject.aabbNeedsUpdate = true;
       collider._isSimulate = true;
     }
     /**
@@ -14528,6 +14536,7 @@ var __LayaCannon = (() => {
      * @param collider
      */
     removeCollider(collider) {
+      this._physicsUpdateList.remove(collider);
       if (!this._discreteDynamicsWorld)
         throw "Simulation:Cannot perform this action when the physics engine is set to CollisionsOnly";
       if (!collider._isSimulate) {
@@ -14583,6 +14592,8 @@ var __LayaCannon = (() => {
       CannonCollider._addUpdateList = true;
       this._updateCollisions();
       this.dispatchCollideEvent();
+      ++this._updateCount;
+      this._collisionsUtils.recoverAllHitResultsPool();
     }
     /**
      *  射线检测第一个碰撞物体。
@@ -14755,10 +14766,8 @@ var __LayaCannon = (() => {
       super(physicsManager);
       this._isKinematic = false;
       this._mass = 1;
-      if (!this._isKinematic)
-        this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
-      else
-        this._cannonColliderObject.type = CANNON.Body.KINEMATIC;
+      this._cannonColliderObject.type = CANNON.Body.DYNAMIC;
+      this._enableProcessCollisions = true;
     }
     /**
      * @internal
@@ -14793,7 +14802,7 @@ var __LayaCannon = (() => {
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MassCenter, false);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxAngularVelocity, false);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_MaxDepenetrationVelocity, false);
-      this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, false);
+      this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepThreshold, true);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SleepAngularVelocity, false);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_SolverIterations, false);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_AllowDetectionMode, true);
@@ -14806,6 +14815,8 @@ var __LayaCannon = (() => {
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorque, true);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyImpulse, true);
       this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_ApplyTorqueImpulse, true);
+      this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldPosition, true);
+      this._rigidBodyCapableMap.set(EColliderCapable.RigidBody_WorldOrientation, true);
     }
     getCapable(value) {
       return _CannonRigidBodyCollider.getRigidBodyCapable(value);
@@ -14876,16 +14887,19 @@ var __LayaCannon = (() => {
       var natColObj = this._cannonColliderObject;
       if (value) {
         natColObj.type = CANNON.Body.KINEMATIC;
+        natColObj.allowSleep = false;
         this._enableProcessCollisions = false;
         this._updateMass(0);
       } else {
-        natColObj.allowSleep = true;
+        natColObj.allowSleep = this._allowSleep;
         natColObj.type = CANNON.Body.DYNAMIC;
         this._enableProcessCollisions = true;
         this._updateMass(this._mass);
       }
+      natColObj.wakeUp();
       natColObj.velocity.set(0, 0, 0);
       natColObj.angularVelocity.set(0, 0, 0);
+      this.inPhysicUpdateListIndex = -1;
       canInSimulation && this._addToSimulation();
     }
     /**
@@ -14937,10 +14951,16 @@ var __LayaCannon = (() => {
       this._cannonColliderObject && this._cannonColliderObject.wakeUp();
     }
     setWorldPosition(value) {
-      this._cannonColliderObject && this._cannonColliderObject.position.set(value.x, value.y, value.z);
+      if (this._cannonColliderObject) {
+        this._cannonColliderObject.position.set(value.x, value.y, value.z);
+        this._cannonColliderObject.aabbNeedsUpdate = true;
+      }
     }
     setWorldRotation(value) {
-      this._cannonColliderObject && this._cannonColliderObject.quaternion.set(value.x, value.y, value.z, value.w);
+      if (this._cannonColliderObject) {
+        this._cannonColliderObject.quaternion.set(value.x, value.y, value.z, value.w);
+        this._cannonColliderObject.aabbNeedsUpdate = true;
+      }
     }
     setSleepThreshold(value) {
       this._cannonColliderObject.sleepSpeedLimit = value;
@@ -14949,16 +14969,7 @@ var __LayaCannon = (() => {
       this._isTrigger = value;
       if (this._cannonColliderObject) {
         this._cannonColliderObject.isTrigger = value;
-        if (value) {
-          var flag = this._cannonColliderObject.type;
-          this._cannonColliderObject.collisionResponse = false;
-          if ((flag & CANNON.Body.STATIC) === 0)
-            this._cannonColliderObject.type |= CANNON.Body.STATIC;
-        } else {
-          this._cannonColliderObject.collisionResponse = true;
-          if ((flag & CANNON.Body.STATIC) !== 0)
-            this._cannonColliderObject.type ^= CANNON.Body.STATIC;
-        }
+        this._cannonColliderObject.collisionResponse = !value;
       }
     }
     getLinearVelocity() {
@@ -15048,13 +15059,13 @@ var __LayaCannon = (() => {
     static getLocalQuatation(upAxis, rotation) {
       switch (upAxis) {
         case Physics3DColliderShape.SHAPEORIENTATION_UPX:
-          rotation.identity();
+          Quaternion2.createFromAxisAngle(Vector34.UnitY, Math.PI / 2, rotation);
           break;
         case Physics3DColliderShape.SHAPEORIENTATION_UPY:
-          Quaternion2.createFromAxisAngle(Vector34.UnitX, Math.PI / 2, rotation);
+          Quaternion2.createFromAxisAngle(Vector34.UnitX, -Math.PI / 2, rotation);
           break;
         case Physics3DColliderShape.SHAPEORIENTATION_UPZ:
-          Quaternion2.createFromAxisAngle(Vector34.UnitZ, -Math.PI / 2, rotation);
+          rotation.identity();
           break;
         default:
           throw "CapsuleColliderShape:unknown orientation.";
@@ -15099,6 +15110,8 @@ var __LayaCannon = (() => {
     }
     setOffset(position) {
       position.cloneTo(this._localOffset);
+      const collider = this._attatchedCollisionObject;
+      if (collider && collider.owner) collider._derivePhysicsTransformation(true);
     }
     setWorldScale(value) {
       if (Vector34.equals(this._scale, value)) {
@@ -15132,10 +15145,7 @@ var __LayaCannon = (() => {
         btColliderObject = this._attatchedCollisionObject._cannonColliderObject;
       }
       if (this._btShape && btColliderObject) {
-        var localOffset = this._localOffset;
-        var scale = this._scale;
-        var vecs = new CANNON.Vec3(localOffset.x * scale.x, localOffset.y * scale.y, localOffset.z * scale.z);
-        btColliderObject.addShape(this._btShape, vecs);
+        btColliderObject.addShape(this._btShape);
       }
     }
     /**
@@ -15185,7 +15195,7 @@ var __LayaCannon = (() => {
     }
     _updateShapeContent() {
       let box = this._btShape;
-      box.halfExtents.set(this._size.x / 2 * this._scale.x, this._size.y / 2 * this._scale.y, this._size.z / 2 * this._scale.z);
+      box.halfExtents.set(Math.abs(this._size.x * this._scale.x) / 2, Math.abs(this._size.y * this._scale.y) / 2, Math.abs(this._size.z * this._scale.z) / 2);
       box.updateConvexPolyhedronRepresentation();
       box.updateBoundingSphereRadius();
       super._updateShapeContent();
@@ -15434,16 +15444,7 @@ var __LayaCannon = (() => {
       this._isTrigger = value;
       if (this._cannonColliderObject) {
         this._cannonColliderObject.isTrigger = value;
-        if (value) {
-          var flag = this._cannonColliderObject.type;
-          this._cannonColliderObject.collisionResponse = false;
-          if ((flag & CANNON.Body.STATIC) === 0)
-            this._cannonColliderObject.type |= CANNON.Body.STATIC;
-        } else {
-          this._cannonColliderObject.collisionResponse = true;
-          if ((flag & CANNON.Body.STATIC) !== 0)
-            this._cannonColliderObject.type ^= CANNON.Body.STATIC;
-        }
+        this._cannonColliderObject.collisionResponse = !value;
       }
     }
   };

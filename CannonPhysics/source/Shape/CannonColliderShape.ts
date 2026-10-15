@@ -53,14 +53,14 @@ export class CannonColliderShape implements IColliderShape {
     static getLocalQuatation(upAxis: number, rotation: Quaternion): void {
         switch (upAxis) {
             case Physics3DColliderShape.SHAPEORIENTATION_UPX:
-                rotation.identity();
+                Quaternion.createFromAxisAngle(Vector3.UnitY, Math.PI / 2, rotation);
                 break;
             case Physics3DColliderShape.SHAPEORIENTATION_UPY:
-                Quaternion.createFromAxisAngle(Vector3.UnitX, Math.PI / 2, rotation);
+                Quaternion.createFromAxisAngle(Vector3.UnitX, -Math.PI / 2, rotation);
 
                 break;
             case Physics3DColliderShape.SHAPEORIENTATION_UPZ:
-                Quaternion.createFromAxisAngle(Vector3.UnitZ, -Math.PI / 2, rotation);
+                rotation.identity();
                 break;
             default:
                 throw "CapsuleColliderShape:unknown orientation.";
@@ -140,6 +140,8 @@ export class CannonColliderShape implements IColliderShape {
 
     setOffset(position: Vector3): void {
         position.cloneTo(this._localOffset);
+        const collider = this._attatchedCollisionObject;
+        if (collider && collider.owner) collider._derivePhysicsTransformation(true);
     }
 
 
@@ -187,10 +189,8 @@ export class CannonColliderShape implements IColliderShape {
             btColliderObject = this._attatchedCollisionObject._cannonColliderObject;
         }
         if (this._btShape && btColliderObject) {
-            var localOffset = this._localOffset;
-            var scale = this._scale;
-            var vecs: CANNON.Vec3 = new CANNON.Vec3(localOffset.x * scale.x, localOffset.y * scale.y, localOffset.z * scale.z);
-            btColliderObject.addShape(this._btShape, vecs);
+            // The body transform already includes the collider's local offset.
+            btColliderObject.addShape(this._btShape);
         }
     }
     /**

@@ -11,7 +11,8 @@
     "build": "node scripts/build.js",
     "package": "npm run build && layaair export-installable-package CannonPhysics/dist --output out/com.layabox.cannon-js.layapkg",
     "preview": "npm run build && layaair run",
-    "build:web": "npm run build && layaair build web"
+    "build:web": "npm run build && layaair build web",
+    "test": "npm run build:web && node --test tests/physics.test.cjs"
   },
   "repository": {
     "type": "git",

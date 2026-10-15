@@ -34,6 +34,7 @@ npm run build
 
 ```sh
 npm run check      # 检查适配层和测试脚本
+npm test           # 发布测试工程并运行真实引擎下的物理回归测试
 npm run preview    # 编译后启动 LayaAir CLI 预览
 npm run build:web  # 编译后发布测试工程到 release/web
 ```
