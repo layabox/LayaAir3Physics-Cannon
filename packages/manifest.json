@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "com.layabox.cannon-js": "file:../CannonPhysics/dist"
+  }
+}

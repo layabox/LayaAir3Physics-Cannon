@@ -1,0 +1,10 @@
+{
+  "modules": {
+    "laya.d3": true,
+    "laya.physics3D": true
+  },
+  "splash": {
+    "fit": "center"
+  },
+  "physics3dModule": "laya.cannon"
+}

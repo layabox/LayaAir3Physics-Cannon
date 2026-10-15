@@ -1,44 +1,72 @@
-# 适配了LayaAir3的物理引擎Cannon.js
+# LayaAir 3 Cannon.js 物理引擎与测试工程
 
-> 提醒： 引擎版本必须 >= LayaAir 3.1
-
-LayaAir3.1开始，支持开发者自主接入第三方的物理引擎。本项目基于Cannon.js物理引擎完成了LayaAir3.1的适配接入，开发者可以参照本开源项目的代码与流程，尝试接入其它物理引擎。
+这是可以直接在 LayaAir IDE 中打开的项目。本地安装包、开发源码和构建目录相互独立。
 
 [English](README.md)
 
-## 环境准备
+## 项目结构
 
-1、引擎根目录下，用命令行执行以下命令，安装node模块，如下所示：
+| 路径 | 用途 |
+| --- | --- |
+| `CannonPhysics.laya` | LayaAir IDE 项目入口 |
+| `CannonPhysics/source/` | Cannon 适配层 TypeScript 源码 |
+| `CannonPhysics/source/libs/` | Cannon.js 原库及其类型声明 |
+| `scripts/build.js` | 类型检查、编译和复制最终 JS |
+| `CannonPhysics/dist/` | 安装包目录：最终 JS、包描述、资源元数据 |
+| `packages/manifest.json` | 引用本地 CannonPhysics 包 |
+| `assets/PhysicsTest.ls` | 默认测试场景 |
+| `src/Main.ts` | 箱体、球体落地碰撞测试；点击重置 |
+| `engine/types/LayaAir.d.ts` | 固定的引擎声明文件，无需更新 |
+| `settings/` | 场景入口、引擎模块及构建配置 |
+
+## 打开与测试
+
+需要 Node.js 20.10+、LayaAir IDE 3.4；命令行预览、构建、导出还需要支持 `export-installable-package` 的 LayaAir CLI。
 
 ```sh
-cnpm i
+npm ci
+npm run build
 ```
 
-2、获得LayaAir引擎，如何获得与更新引擎过于基础，本篇文档中不展开介绍。
+用 IDE 打开 `CannonPhysics.laya`，运行默认的 `PhysicsTest` 场景。12 个箱体、球体会落向地面，左上角显示最低高度；点击场景重新投放。场地边界防止球体滚出。
 
-引擎Github地址为：https://github.com/layabox/LayaAir.git
+修改 `CannonPhysics/source/` 后重新执行 `npm run build`，再刷新预览。首次打开或拉取源码后先构建；生成的 JS 不提交。
 
-3、在scripts目录下创建enginePath.txt文件，并配置引擎Github在电脑中的绝对路径，路径的格式参照如下：
+```sh
+npm run check      # 检查适配层和测试脚本
+npm run preview    # 编译后启动 LayaAir CLI 预览
+npm run build:web  # 编译后发布测试工程到 release/web
+```
+
+## 物理后端注册
+
+`CannonPhysics/dist/package.json` 的 `contributes.engine` 为 `laya.physics3D` 添加 `laya.cannon` 后端，文件为包内的 `laya.cannon.js`。
+
+测试工程的 `settings/PlayerSettings.json` 开启 `laya.d3`、`laya.physics3D`，并设置 `physics3dModule: "laya.cannon"`。IDE 和发布流程通过引擎模块机制加载该文件，而非普通脚本自动导入；JS 的 `.meta` 中 `import` 因此设为 `false`。构建后的页面加载 Cannon 后端，不加载 Bullet。
+
+其他项目安装此包后，在引擎模块设置中选择 Cannon.js 作为 3D 物理后端。
+
+## 构建与导出
+
+`npm run build` 先检查类型，再将 Cannon.js 和适配层直接打包至 `CannonPhysics/dist/laya.cannon.js`。
+
+```sh
+npm run package
+```
+
+该命令先编译，再直接导出当前工程的 `CannonPhysics/dist`，生成 `out/com.layabox.cannon-js.layapkg`。安装包仅含：
 
 ```text
-D:\Github\LayaAir
+package.json
+package.json.meta
+laya.cannon.js
+laya.cannon.js.meta
 ```
 
-4、引擎根目录下，用命令行执行以下命令，编译引擎到项目内，如下所示：
+源码、Cannon 原库、构建脚本、测试场景及引擎声明均在包目录外。
 
-```shell
-cnpm run update-engine
+也可以先编译，再通过 IDE 的“工具 → 导出可安装包”选择 `CannonPhysics/dist`，或执行：
+
+```sh
+layaair export-installable-package CannonPhysics/dist --output out/com.layabox.cannon-js.layapkg
 ```
-
-
-
-## 编译为物理引擎库
-
-引擎根目录下，用命令行执行以下命令，将物理引擎编译为独立的JS库文件，如下所示：
-
-```
-cnpm run build
-```
-
-编译后的JS库文件`laya.cannon.js`位于`out`目录下。
-

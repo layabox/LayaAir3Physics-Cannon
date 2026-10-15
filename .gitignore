@@ -1,8 +1,8 @@
-build
-libs/box2d.d.ts
-libs/glsl.d.ts
-libs/LayaAir.d.ts
-libs/spine.d.ts
-node_modules
-scripts/enginePath.txt
-out
+.DS_Store
+node_modules/
+out/
+temp/
+library/
+local/
+release/
+bin/js/bundles/

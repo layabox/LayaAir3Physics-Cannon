@@ -1,0 +1,20 @@
+{
+  "name": "com.layabox.cannon-js",
+  "version": "1.0.4",
+  "contributes": {
+    "engine": [
+      {
+        "name": "laya.physics3D",
+        "addons": [
+          {
+            "name": "laya.cannon",
+            "caption": "Cannon.js",
+            "files": [
+              "laya.cannon.js"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

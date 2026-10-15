@@ -1,44 +1,68 @@
-# Adapted Cannon.js physics engine for LayaAir3
-> Tips: Engine version must be >= LayaAir 3.1
+# Cannon.js physics and test project for LayaAir 3
 
-Starting from LayaAir 3.1, developers are able to independently integrate third-party physics engines. This project has completed the adaptation and integration of LayaAir 3.1 based on the Cannon.js physics engine. Developers can refer to the code and process of this open-source project to attempt integration with other physics engines.
+A runnable LayaAir project with separate development source, build output, and installable package directories.
 
 [中文说明](README.zh-CN.md)
 
-## Environment
+| Path | Purpose |
+| --- | --- |
+| `CannonPhysics.laya` | LayaAir IDE project entry |
+| `CannonPhysics/source/` | Adapter TypeScript source |
+| `CannonPhysics/source/libs/` | Original Cannon.js runtime and declarations |
+| `scripts/build.js` | Type checking, bundling, and runtime copy |
+| `CannonPhysics/dist/` | Installable package files only |
+| `packages/manifest.json` | Local package dependency |
+| `assets/PhysicsTest.ls` | Startup test scene |
+| `src/Main.ts` | Falling boxes and spheres; click to reset |
+| `engine/types/LayaAir.d.ts` | Fixed engine declarations |
+| `settings/` | Project settings and Cannon backend selection |
 
-1. In the root directory of the engine, execute the following command in the command line to install node modules:
+## Develop and test
+
+Requires Node.js 20.10+ and LayaAir IDE 3.4. CLI workflows require LayaAir CLI.
 
 ```sh
-npm i
-```
-
-2. Obtaining and updating the LayaAir engine is too basic for this document, so it will not be covered here.
-
-   The engine's GitHub address is: https://github.com/layabox/LayaAir.git
-
-3. In the `"scripts"` directory, create a file named `"enginePath.txt"` and configure the absolute path of the LayaAir engine on your computer. The format of the path should follow the example below:
-
-```text
-D:\Github\LayaAir
-```
-
-> Replace "D:\Github\LayaAir" with the actual absolute path of the LayaAir engine directory on your computer.
-
-4. In the root directory of the engine, execute the following command in the command line to compile the engine into the project directory:
-
-```shell
-npm run update-engine
-```
-
-
-
-## Compile
-
-In the root directory of the engine, execute the following command in the command line to compile the physics engine into a standalone JavaScript library file:
-
-```
+npm ci
 npm run build
 ```
 
-The compiled JavaScript library file `laya.cannon.js` is located in the `out` directory.
+Open `CannonPhysics.laya` and run the startup scene. Twelve bodies fall onto the floor, with boundaries to retain rolling spheres. Click to reset. Rebuild after editing `CannonPhysics/source/`, then refresh the preview. Build before the first preview after cloning; generated JS is ignored by Git.
+
+```sh
+npm run check
+npm run preview
+npm run build:web
+```
+
+## Backend registration
+
+The package manifest uses `contributes.engine` to add the `laya.cannon` backend to `laya.physics3D`, pointing to `laya.cannon.js` inside the package.
+
+PlayerSettings enables `laya.d3` and `laya.physics3D`, and selects `physics3dModule: "laya.cannon"`. The engine module system loads the library, so ordinary script import is disabled in its `.meta`. The generated page loads Cannon instead of Bullet.
+
+After installing this package in another project, select Cannon.js as the 3D physics backend in the engine module settings.
+
+## Build and export
+
+The build checks TypeScript and bundles Cannon.js and the adapter directly into `CannonPhysics/dist/laya.cannon.js`.
+
+```sh
+npm run package
+```
+
+Exports `CannonPhysics/dist` directly to `out/com.layabox.cannon-js.layapkg`, containing only:
+
+```text
+package.json
+package.json.meta
+laya.cannon.js
+laya.cannon.js.meta
+```
+
+Source files, build tools, test assets, and engine declarations stay outside the package.
+
+After building, you may also export the directory through IDE Tools → Export Installable Package, or run:
+
+```sh
+layaair export-installable-package CannonPhysics/dist --output out/com.layabox.cannon-js.layapkg
+```
